@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build-react"
+  command = "npm install --legacy-peer-deps && npm run build-react"
   publish = "build"
 
 [build.environment]
