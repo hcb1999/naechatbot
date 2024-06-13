@@ -1,11 +1,34 @@
 import React, {useState, useCallback, useEffect} from 'react';
-import {View, StyleSheet, Platform, KeyboardAvoidingView} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Platform,
+  KeyboardAvoidingView,
+  Alert,
+} from 'react-native';
 import {GiftedChat, Bubble, InputToolbar} from 'react-native-gifted-chat';
 import axios from 'axios';
 import {getLocation} from '../utils/getGeolocation';
+
+interface IMessage {
+  _id: string | number;
+  text: string;
+  createdAt: Date;
+  user: {
+    _id: string | number;
+    name: string;
+    avatar?: string;
+  };
+}
+
+interface ILocation {
+  latitude: number;
+  longitude: number;
+}
+
 export function TestScreen() {
-  const [messages, setMessages] = useState([]);
-  const [location, setLocation] = useState(null); // 기본 위치 설정
+  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [location, setLocation] = useState<ILocation | null>(null);
 
   useEffect(() => {
     setMessages([
@@ -16,7 +39,6 @@ export function TestScreen() {
         user: {
           _id: 2,
           name: 'Support Bot',
-          //avatar: 'https://placeimg.com/140/140/any',
         },
       },
     ]);
@@ -39,7 +61,7 @@ export function TestScreen() {
   }, []);
 
   const onSend = useCallback(
-    async (newMessages = []) => {
+    async (newMessages: IMessage[] = []) => {
       if (newMessages.length > 0) {
         const newMessage = newMessages[0];
         setMessages(previousMessages =>
@@ -51,14 +73,14 @@ export function TestScreen() {
             'http://chat-dev.naegift.com/chat/receive-text',
             {
               input_text: newMessage.text,
-              lat: location.latitude,
-              lon: location.longitude,
+              lat: location?.latitude,
+              lon: location?.longitude,
             },
           );
 
-          const receivedMessage = {
+          const receivedMessage: IMessage = {
             _id: Math.random().toString(36).substring(7),
-            text: response.data.output_text, // 서버에서 받은 응답 텍스트
+            text: response.data.output_text,
             createdAt: new Date(),
             user: {
               _id: 2,
