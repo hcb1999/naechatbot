@@ -9,26 +9,42 @@ import {
 import {GiftedChat, Bubble, InputToolbar} from 'react-native-gifted-chat';
 import axios from 'axios';
 import {getLocation} from '../utils/getGeolocation';
+import TypingText from '../components/TypingText';
 
-interface IMessage {
-  _id: string | number;
-  text: string;
-  createdAt: Date;
-  user: {
-    _id: string | number;
-    name: string;
-    avatar?: string;
-  };
-}
+const TypingBubble = (props: any) => {
+  const {text, user} = props.currentMessage;
 
-interface ILocation {
-  latitude: number;
-  longitude: number;
-}
+  // 내가 보낸 메시지일 경우 일반 텍스트로 표시
+  if (user._id === 1) {
+    return (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          right: {
+            backgroundColor: '#0084ff',
+          },
+        }}
+      />
+    );
+  }
+
+  // 상대방이 보낸 메시지일 경우 타이핑 효과 적용
+  return (
+    <Bubble
+      {...props}
+      wrapperStyle={{
+        left: {
+          backgroundColor: '#f0f0f0',
+        },
+      }}
+      renderMessageText={() => <TypingText text={text} />}
+    />
+  );
+};
 
 export function TestScreen() {
-  const [messages, setMessages] = useState<IMessage[]>([]);
-  const [location, setLocation] = useState<ILocation | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [location, setLocation] = useState<any>(null); // 기본 위치 설정
 
   useEffect(() => {
     setMessages([
@@ -39,6 +55,7 @@ export function TestScreen() {
         user: {
           _id: 2,
           name: 'Support Bot',
+          //avatar: 'https://placeimg.com/140/140/any',
         },
       },
     ]);
@@ -61,7 +78,7 @@ export function TestScreen() {
   }, []);
 
   const onSend = useCallback(
-    async (newMessages: IMessage[] = []) => {
+    async (newMessages = []) => {
       if (newMessages.length > 0) {
         const newMessage = newMessages[0];
         setMessages(previousMessages =>
@@ -73,14 +90,14 @@ export function TestScreen() {
             'http://chat-dev.naegift.com/chat/receive-text',
             {
               input_text: newMessage.text,
-              lat: location?.latitude,
-              lon: location?.longitude,
+              lat: location.latitude,
+              lon: location.longitude,
             },
           );
 
-          const receivedMessage: IMessage = {
+          const receivedMessage = {
             _id: Math.random().toString(36).substring(7),
-            text: response.data.output_text,
+            text: response.data.output_text, // 서버에서 받은 응답 텍스트
             createdAt: new Date(),
             user: {
               _id: 2,
@@ -108,16 +125,7 @@ export function TestScreen() {
         user={{
           _id: 1,
         }}
-        renderBubble={props => (
-          <Bubble
-            {...props}
-            wrapperStyle={{
-              right: {
-                backgroundColor: '#0084ff',
-              },
-            }}
-          />
-        )}
+        renderBubble={props => <TypingBubble {...props} />}
         renderInputToolbar={props => (
           <InputToolbar {...props} containerStyle={styles.inputToolbar} />
         )}

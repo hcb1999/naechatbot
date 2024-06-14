@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 
 import {getLocation} from '../utils/getGeolocation';
-
 import {
   KakaoOAuthToken,
   KakaoProfile,

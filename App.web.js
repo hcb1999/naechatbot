@@ -4,16 +4,49 @@ import {
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
+  Alert,
   Dimensions,
 } from 'react-native';
 import {GiftedChat, Bubble, InputToolbar} from 'react-native-gifted-chat';
 import axios from 'axios';
 import {getLocation} from './src/utils/getGeolocation';
+import TypingText from './src/components/TypingText';
+
+const TypingBubble = props => {
+  const {text, user} = props.currentMessage;
+
+  // 내가 보낸 메시지일 경우 일반 텍스트로 표시
+  if (user._id === 1) {
+    return (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          right: {
+            backgroundColor: '#0084ff',
+          },
+        }}
+      />
+    );
+  }
+
+  // 상대방이 보낸 메시지일 경우 타이핑 효과 적용
+  return (
+    <Bubble
+      {...props}
+      wrapperStyle={{
+        left: {
+          backgroundColor: '#f0f0f0',
+        },
+      }}
+      renderMessageText={() => <TypingText text={text} />}
+    />
+  );
+};
+
 export function App() {
   const [messages, setMessages] = useState([]);
   const [location, setLocation] = useState(null); // 기본 위치 설정
   const {width, height} = Dimensions.get('window');
-
   useEffect(() => {
     setMessages([
       {
@@ -33,13 +66,12 @@ export function App() {
     const fetchLocation = async () => {
       try {
         const loc = await getLocation();
-        console.log(loc);
-
         if (loc) {
           setLocation(loc);
         }
       } catch (error) {
         console.error('Failed to fetch location:', error);
+        Alert.alert('Error', 'Failed to fetch location.');
       }
     };
 
@@ -94,16 +126,7 @@ export function App() {
         user={{
           _id: 1,
         }}
-        renderBubble={props => (
-          <Bubble
-            {...props}
-            wrapperStyle={{
-              right: {
-                backgroundColor: '#0084ff',
-              },
-            }}
-          />
-        )}
+        renderBubble={props => <TypingBubble {...props} />}
         renderInputToolbar={props => (
           <InputToolbar {...props} containerStyle={styles.inputToolbar} />
         )}
