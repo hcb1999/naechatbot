@@ -4,18 +4,62 @@ import {
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
-  Alert,
+  Text,
   Dimensions,
+  Linking,
+  TouchableOpacity,
 } from 'react-native';
 import {GiftedChat, Bubble, InputToolbar} from 'react-native-gifted-chat';
-import axios from 'axios';
-import {getLocation} from './src/utils/getGeolocation';
-import TypingText from './src/components/TypingText';
 
 const TypingBubble = props => {
   const {text, user} = props.currentMessage;
 
-  // 내가 보낸 메시지일 경우 일반 텍스트로 표시
+  // 링크를 포함한 텍스트를 파싱하여 반환하는 함수
+  const parseLocationLink = text => {
+    const regex =
+      /\[지도 보기\]\(https:\/\/www\.google\.com\/maps\?q=([\d.]+),([\d.]+)&z=15\)/g;
+    let match;
+    let elements = [];
+
+    let lastIndex = 0;
+    while ((match = regex.exec(text)) !== null) {
+      const beforeText = text.slice(lastIndex, match.index);
+      if (beforeText) {
+        elements.push(<Text key={`text-${lastIndex}`}>{beforeText}</Text>);
+      }
+
+      const latitude = match[1];
+      const longitude = match[2];
+      const title = props.currentMessage.user.name; // 가게 이름을 여기서 사용
+      const naverMapLink = `https://map.naver.com?lng=${longitude}&lat=${latitude}&title=${title}`;
+
+      elements.push(
+        <TouchableOpacity
+          key={`link-${match.index}`}
+          onPress={() => Linking.openURL(naverMapLink)}>
+          <Text style={{color: 'blue'}}>네이버 지도 보기</Text>
+        </TouchableOpacity>,
+        <TouchableOpacity
+          key={`link-${match.index}`}
+          onPress={() =>
+            Linking.openURL('https://shopuser-dev.naegift.com/41')
+          }>
+          <Text style={{color: 'blue'}}>내기프트 </Text>
+        </TouchableOpacity>,
+      );
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      elements.push(
+        <Text key={`text-${lastIndex}`}>{text.slice(lastIndex)}</Text>,
+      );
+    }
+
+    return elements;
+  };
+  //유저 아이디가 나 자신(1)일떄 아닐떄 구분
   if (user._id === 1) {
     return (
       <Bubble
@@ -29,7 +73,6 @@ const TypingBubble = props => {
     );
   }
 
-  // 상대방이 보낸 메시지일 경우 타이핑 효과 적용
   return (
     <Bubble
       {...props}
@@ -38,15 +81,15 @@ const TypingBubble = props => {
           backgroundColor: '#f0f0f0',
         },
       }}
-      renderMessageText={() => <TypingText text={text} />}
+      renderMessageText={() => <Text>{parseLocationLink(text)}</Text>}
     />
   );
 };
 
 export function App() {
   const [messages, setMessages] = useState([]);
-  const [location, setLocation] = useState(null); // 기본 위치 설정
   const {width, height} = Dimensions.get('window');
+
   useEffect(() => {
     setMessages([
       {
@@ -56,67 +99,85 @@ export function App() {
         user: {
           _id: 2,
           name: 'Support Bot',
-          //avatar: 'https://placeimg.com/140/140/any',
         },
       },
     ]);
   }, []);
+  //스트림 데이터를 기존에 채팅 메시지에 갱신시키는 함수
+  const updatePartialOutput = (messageId, newText) => {
+    setMessages(prevMessages =>
+      prevMessages.map(msg =>
+        msg._id === messageId ? {...msg, text: msg.text + newText} : msg,
+      ),
+    );
+  };
+  //GiftedChat라이브러리 질문할떄 쓰는 이벤트 핸들러
+  const onSend = useCallback(async (newMessages = []) => {
+    if (newMessages.length > 0) {
+      const newMessage = newMessages[0];
+      setMessages(previousMessages =>
+        GiftedChat.append(previousMessages, newMessages),
+      );
 
-  useEffect(() => {
-    const fetchLocation = async () => {
       try {
-        const loc = await getLocation();
-        if (loc) {
-          setLocation(loc);
+        const response = await fetch(
+          'http://chat-dev.naegift.com/chat/receive-stream',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              input_text: newMessage.text,
+              lat: 37.4996,
+              lon: 126.885,
+            }),
+          },
+        );
+        console.log(response);
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      } catch (error) {
-        console.error('Failed to fetch location:', error);
-        Alert.alert('Error', 'Failed to fetch location.');
-      }
-    };
 
-    fetchLocation();
-  }, []);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let text = '';
 
-  const onSend = useCallback(
-    async (newMessages = []) => {
-      if (newMessages.length > 0) {
-        const newMessage = newMessages[0];
-        setMessages(previousMessages =>
-          GiftedChat.append(previousMessages, newMessages),
+        const newStreamMessageId = Math.random().toString(36).substring(7);
+        const initialMessage = {
+          _id: newStreamMessageId,
+          text: '',
+          createdAt: new Date(),
+          user: {
+            _id: 2,
+            name: 'Support Bot',
+          },
+        };
+
+        setMessages(prevMessages =>
+          GiftedChat.append(prevMessages, [initialMessage]),
         );
 
-        try {
-          const response = await axios.post(
-            'http://chat-dev.naegift.com/chat/receive-text',
-            {
-              input_text: newMessage.text,
-              lat: location.latitude,
-              lon: location.longitude,
-            },
-          );
+        function readStream() {
+          reader.read().then(({done, value}) => {
+            if (done) {
+              return;
+            }
 
-          const receivedMessage = {
-            _id: Math.random().toString(36).substring(7),
-            text: response.data.output_text, // 서버에서 받은 응답 텍스트
-            createdAt: new Date(),
-            user: {
-              _id: 2,
-              name: 'Support Bot',
-              avatar: 'https://placeimg.com/140/140/any',
-            },
-          };
+            const textChunk = decoder.decode(value, {stream: true});
+            updatePartialOutput(newStreamMessageId, textChunk);
 
-          setMessages(previousMessages =>
-            GiftedChat.append(previousMessages, receivedMessage),
-          );
-        } catch (error) {
-          console.error('Error sending message:', error);
+            readStream();
+          });
         }
+
+        readStream();
+      } catch (error) {
+        console.log(error);
       }
-    },
-    [location],
-  );
+    }
+  }, []);
 
   return (
     <View style={[styles.container, {width, height}]}>

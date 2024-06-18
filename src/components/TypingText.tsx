@@ -24,10 +24,6 @@ const TypingText: React.FC<TypingTextProps> = ({text, speed = 50}) => {
 
   return (
     <View>
-      <Image
-        source={require('../../public/naegift_ko_logo.png')}
-        //style={styles.icon}
-      />
       <Text style={styles.text}>{displayedText}</Text>
     </View>
   );

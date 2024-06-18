@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -12,7 +12,6 @@ import {
   Button,
 } from 'react-native';
 
-import {getLocation} from '../utils/getGeolocation';
 import {
   KakaoOAuthToken,
   KakaoProfile,
