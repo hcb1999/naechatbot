@@ -1,0 +1,13 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/MinSans-Regular.ttf",
+      "sha1": "03715329acd131eeaeb5b9694cd57fcb995e6d9d"
+    },
+    {
+      "path": "assets/fonts/Ownglyph_UNZ-Rg.ttf",
+      "sha1": "268e89c89775cfc9a1db03159ea29cb5aefb5c86"
+    }
+  ]
+}

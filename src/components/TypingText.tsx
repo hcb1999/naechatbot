@@ -1,6 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import {Text, StyleSheet, View, Image} from 'react-native';
 
+// 일반 json 형태로 받은 응답값에 대한 타이핑 효과 컴포넌트
+
 interface TypingTextProps {
   text: string;
   speed?: number;

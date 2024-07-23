@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {GiftedChat, Bubble, InputToolbar} from 'react-native-gifted-chat';
-
+import {getLocation} from './src/utils/getGeolocation';
+//리액트 네이티브 언어로 웹 플랫폼에서 실행
 const TypingBubble = props => {
   const {text, user} = props.currentMessage;
 
@@ -121,7 +122,7 @@ export function App() {
 
       try {
         const response = await fetch(
-          'http://chat-dev.naegift.com/chat/receive-stream',
+          'https://chat-dev.naegift.com/chat/receive-stream',
           {
             method: 'POST',
             headers: {
